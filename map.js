@@ -42,6 +42,41 @@ let csvData = [];
 let currentYear = '2022';
 let allYears = [];
 
+// Visible status helper: shows small banner inside #ireland-map so users
+// without console access can see progress/stages on deployed Pages
+function updateStatus(message, isError = false) {
+    try {
+        const container = document.getElementById('ireland-map');
+        if (!container) return;
+
+        let statusEl = container.querySelector('.debug-status-overlay');
+        if (!statusEl) {
+            statusEl = document.createElement('div');
+            statusEl.className = 'debug-status-overlay';
+            // Inline minimal styling so it works even if CSS isn't loaded
+            statusEl.style.position = 'absolute';
+            statusEl.style.left = '20px';
+            statusEl.style.top = '20px';
+            statusEl.style.padding = '8px 12px';
+            statusEl.style.borderRadius = '8px';
+            statusEl.style.fontFamily = 'Segoe UI, sans-serif';
+            statusEl.style.fontSize = '13px';
+            statusEl.style.zIndex = 9999;
+            statusEl.style.boxShadow = '0 4px 12px rgba(0,0,0,0.12)';
+            statusEl.style.maxWidth = 'calc(100% - 40px)';
+            container.style.position = container.style.position || 'relative';
+            container.appendChild(statusEl);
+        }
+
+        statusEl.textContent = message;
+        statusEl.style.background = isError ? 'rgba(220,53,69,0.95)' : 'rgba(30,60,114,0.95)';
+        statusEl.style.color = 'white';
+    } catch (e) {
+        // non-fatal; we still log to console
+        console.warn('updateStatus failed', e);
+    }
+}
+
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
     // Global error handlers to surface issues to the user
@@ -54,6 +89,7 @@ document.addEventListener('DOMContentLoaded', function() {
         safeShowError('A data loading error occurred. Please refresh the page.');
     });
 
+    updateStatus('Initializing...');
     loadCSVData();
     setupEventListeners();
 });
@@ -71,8 +107,10 @@ function loadCSVData() {
     document.getElementById('ireland-map').innerHTML = '<div class="loading">Loading historical map data...</div>';
     
     console.log('Starting CSV load...');
+    updateStatus('Starting CSV load...');
     // Fallback timer in case CSV load stalls
     const failTimer = setTimeout(() => {
+        updateStatus('Taking longer than expected to load data...', true);
         safeShowError('Taking longer than expected to load data. If this persists, hard refresh the page or check the network tab.');
     }, 8000);
 
@@ -83,6 +121,7 @@ function loadCSVData() {
         complete: function(results) {
             clearTimeout(failTimer);
             console.log('Papa Parse completed:', results);
+                updateStatus('CSV loaded (Papa Parse).');
             
             if (results.errors && results.errors.length > 0) {
                 console.error('CSV parsing errors:', results.errors);
@@ -94,12 +133,14 @@ function loadCSVData() {
             
             if (csvData.length === 0) {
                 console.warn('Papa returned no rows. Attempting fetch fallback...');
+                updateStatus('Papa returned 0 rows; trying fetch fallback...', true);
                 return fetchCSVFallback();
             }
             
             // Get all unique years and sort them
             allYears = [...new Set(csvData.map(row => row.Year))].sort();
             console.log('Available years:', allYears);
+            updateStatus('CSV parsed OK — creating chart...');
             
             // Update year selector
             updateYearSelector();
@@ -110,6 +151,7 @@ function loadCSVData() {
         error: function(error) {
             console.error('Error loading CSV via Papa:', error);
             clearTimeout(failTimer);
+            updateStatus('Papa parse failed — fetching CSV fallback...', true);
             fetchCSVFallback('Papa parse error: ' + (error && error.message ? error.message : 'unknown'));
         }
     });
@@ -119,6 +161,7 @@ function loadCSVData() {
 async function fetchCSVFallback(reason) {
     try {
         if (reason) console.warn('Fetch fallback reason:', reason);
+    updateStatus('Attempting fetch fallback for CSV...');
         const res = await fetch('historical_irish_data.csv', { cache: 'no-store' });
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const text = await res.text();
@@ -142,10 +185,12 @@ async function fetchCSVFallback(reason) {
 
         allYears = [...new Set(csvData.map(row => row.Year))].sort();
         updateYearSelector();
-        createSimpleChart();
+    updateStatus('CSV fetched & parsed — creating chart...');
+    createSimpleChart();
     } catch (e) {
         console.error('CSV fetch fallback failed:', e);
-        safeShowError('Failed to load data file. Ensure historical_irish_data.csv is present and accessible.');
+    updateStatus('CSV fetch fallback failed', true);
+    safeShowError('Failed to load data file. Ensure historical_irish_data.csv is present and accessible.');
     }
 }
 
@@ -177,6 +222,7 @@ function getDataForYear(year) {
 
 function createSimpleChart() {
     console.log('Creating simple chart for year:', currentYear);
+    updateStatus('Rendering chart for ' + currentYear + '...');
     
     const yearData = getDataForYear(currentYear);
     console.log('Year data:', yearData.length, 'records for', currentYear);
@@ -263,11 +309,13 @@ function createSimpleChart() {
     Plotly.newPlot('ireland-map', data, layout, config)
         .then(function() {
             console.log('Simple chart created successfully');
+            updateStatus('Chart rendered — adding animation features...');
             // Once simple chart works, we can add animation
             setTimeout(addAnimationFeatures, 1000);
         })
         .catch(function(error) {
             console.error('Error creating plot:', error);
+            updateStatus('Error creating chart: ' + (error.message || error), true);
             document.getElementById('ireland-map').innerHTML = 
                 '<div style="text-align: center; padding: 50px; color: red;">Error creating chart: ' + error.message + '</div>';
         });
