@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Irish Language Decline Map - Ireland</title>
+    
+    <!-- Plotly.js CDN -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    
+    <!-- Papa Parse for CSV loading -->
+    <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Irish Language Speakers by County</h1>
+            <p class="subtitle">Percentage of population who can speak Irish (2011-2022)</p>
+        </header>
+        
+        <div class="controls">
+            <label for="yearSelect">Select Year:</label>
+            <select id="yearSelect">
+                <option value="2011">2011</option>
+                <option value="2016">2016</option>
+                <option value="2022" selected>2022</option>
+            </select>
+        </div>
+        
+        <div id="map-container">
+            <div id="ireland-map"></div>
+        </div>
+        
+        <div class="info-panel">
+            <h3>About this Map</h3>
+            <p>This interactive map shows the percentage of the population who can speak Irish in each county of Ireland from 2011 to 2022, based on Census data from the Central Statistics Office (CSO).</p>
+            
+            <div class="legend">
+                <h4>Key Findings:</h4>
+                <ul>
+                    <li>Hover over counties to see exact percentages</li>
+                    <li>Use the year selector to see changes over time</li>
+                    <li>Darker colors indicate higher percentages of Irish speakers</li>
+                    <li>Data shows general decline in most counties from 2011-2022</li>
+                </ul>
+            </div>
+        </div>
+        
+        <footer>
+            <p>Data source: Central Statistics Office (CSO) Ireland | 
+            <a href="https://github.com/danielcregg/irish-decline-map" target="_blank">View Source Code</a></p>
+        </footer>
+    </div>
+    
+    <script src="map.js"></script>
+</body>
+</html>
