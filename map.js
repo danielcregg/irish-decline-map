@@ -44,6 +44,16 @@ let allYears = [];
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
+    // Global error handlers to surface issues to the user
+    window.addEventListener('error', (e) => {
+        console.error('Unhandled error:', e.message || e);
+        safeShowError('An unexpected error occurred while loading the chart. Check the browser console for details.');
+    });
+    window.addEventListener('unhandledrejection', (e) => {
+        console.error('Unhandled promise rejection:', e.reason || e);
+        safeShowError('A data loading error occurred. Please refresh the page.');
+    });
+
     loadCSVData();
     setupEventListeners();
 });
@@ -61,12 +71,17 @@ function loadCSVData() {
     document.getElementById('ireland-map').innerHTML = '<div class="loading">Loading historical map data...</div>';
     
     console.log('Starting CSV load...');
-    
-    // Load the historical CSV file
+    // Fallback timer in case CSV load stalls
+    const failTimer = setTimeout(() => {
+        safeShowError('Taking longer than expected to load data. If this persists, hard refresh the page or check the network tab.');
+    }, 8000);
+
+    // Load the historical CSV file via Papa
     Papa.parse('historical_irish_data.csv', {
         download: true,
         header: true,
         complete: function(results) {
+            clearTimeout(failTimer);
             console.log('Papa Parse completed:', results);
             
             if (results.errors && results.errors.length > 0) {
@@ -78,9 +93,8 @@ function loadCSVData() {
             console.log('Sample data:', csvData.slice(0, 3));
             
             if (csvData.length === 0) {
-                document.getElementById('ireland-map').innerHTML = 
-                    '<div style="text-align: center; padding: 50px; color: red;">No valid data found in CSV file</div>';
-                return;
+                console.warn('Papa returned no rows. Attempting fetch fallback...');
+                return fetchCSVFallback();
             }
             
             // Get all unique years and sort them
@@ -94,11 +108,52 @@ function loadCSVData() {
             createSimpleChart();
         },
         error: function(error) {
-            console.error('Error loading CSV:', error);
-            document.getElementById('ireland-map').innerHTML = 
-                '<div style="text-align: center; padding: 50px; color: red;">Error loading historical data: ' + error.message + '</div>';
+            console.error('Error loading CSV via Papa:', error);
+            clearTimeout(failTimer);
+            fetchCSVFallback('Papa parse error: ' + (error && error.message ? error.message : 'unknown'));
         }
     });
+}
+
+// Fetch fallback if Papa stalls or outputs empty
+async function fetchCSVFallback(reason) {
+    try {
+        if (reason) console.warn('Fetch fallback reason:', reason);
+        const res = await fetch('historical_irish_data.csv', { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const text = await res.text();
+        // Basic CSV parsing (split lines and commas). We rely on our simple data (no quoted commas)
+        const lines = text.trim().split(/\r?\n/);
+        const header = lines.shift().split(',');
+        const idxYear = header.indexOf('Year');
+        const idxCounty = header.indexOf('County');
+        const idxPct = header.indexOf('PercentageIrishSpeakers');
+        if (idxYear === -1 || idxCounty === -1 || idxPct === -1) throw new Error('CSV header missing expected columns');
+        csvData = lines.map(line => {
+            const cols = line.split(',');
+            return {
+                Year: cols[idxYear],
+                County: cols[idxCounty],
+                PercentageIrishSpeakers: cols[idxPct]
+            };
+        }).filter(r => r.Year && r.County && r.PercentageIrishSpeakers);
+
+        if (csvData.length === 0) throw new Error('Parsed 0 rows from fallback parse');
+
+        allYears = [...new Set(csvData.map(row => row.Year))].sort();
+        updateYearSelector();
+        createSimpleChart();
+    } catch (e) {
+        console.error('CSV fetch fallback failed:', e);
+        safeShowError('Failed to load data file. Ensure historical_irish_data.csv is present and accessible.');
+    }
+}
+
+function safeShowError(msg) {
+    const el = document.getElementById('ireland-map');
+    if (el) {
+        el.innerHTML = `<div style="text-align:center;padding:50px;color:red;">${msg}</div>`;
+    }
 }
 
 function updateYearSelector() {
