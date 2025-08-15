@@ -187,6 +187,10 @@ function createSimpleChart() {
         return;
     }
     
+    // Clear any loading overlay before drawing
+    const container = document.getElementById('ireland-map');
+    if (container) container.innerHTML = '';
+
     const counties = [];
     const percentages = [];
     const colors = [];
