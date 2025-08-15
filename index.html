@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Irish Language Decline Map - Ireland</title>
     
-    <!-- Plotly.js CDN -->
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <!-- Plotly.js CDN - Latest version -->
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
     
     <!-- Papa Parse for CSV loading -->
     <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
@@ -24,10 +24,16 @@
         <div class="controls">
             <label for="yearSelect">Select Year:</label>
             <select id="yearSelect">
+                <option value="1841">1841</option>
+                <option value="1881">1881</option>
+                <option value="1926">1926</option>
+                <option value="1961">1961</option>
+                <option value="1991">1991</option>
                 <option value="2011">2011</option>
                 <option value="2016">2016</option>
                 <option value="2022" selected>2022</option>
             </select>
+            <p class="timeline-info">Use the Play button and slider below the chart to see the animated decline over 180+ years</p>
         </div>
         
         <div id="map-container">
@@ -35,16 +41,26 @@
         </div>
         
         <div class="info-panel">
-            <h3>About this Map</h3>
-            <p>This interactive map shows the percentage of the population who can speak Irish in each county of Ireland from 2011 to 2022, based on Census data from the Central Statistics Office (CSO).</p>
+            <h3>About this Historical Map</h3>
+            <p>This interactive visualization shows the dramatic decline of Irish language speakers across Ireland from 1841 to 2022 - spanning over 180 years of linguistic change.</p>
             
             <div class="legend">
-                <h4>Key Findings:</h4>
+                <h4>Key Features:</h4>
                 <ul>
-                    <li>Hover over counties to see exact percentages</li>
-                    <li>Use the year selector to see changes over time</li>
-                    <li>Darker colors indicate higher percentages of Irish speakers</li>
-                    <li>Data shows general decline in most counties from 2011-2022</li>
+                    <li><strong>Historical Timeline:</strong> From 1841 (when most of Ireland spoke Irish) to 2022</li>
+                    <li><strong>Animation Controls:</strong> Click "Play" to see the decline animated over time</li>
+                    <li><strong>Interactive Slider:</strong> Drag the slider below the chart to jump to any year</li>
+                    <li><strong>Color Coding:</strong> Dark red = high percentage, light pink = low percentage</li>
+                    <li><strong>Hover Details:</strong> Hover over bars to see exact percentages and counties</li>
+                </ul>
+                
+                <h4>Historical Context:</h4>
+                <ul>
+                    <li><strong>1841:</strong> Peak period - most counties had 80-95% Irish speakers</li>
+                    <li><strong>1881:</strong> Post-Famine decline begins to show significantly</li>
+                    <li><strong>1926:</strong> After independence, continued decline due to urbanization</li>
+                    <li><strong>1961-1991:</strong> Gradual stabilization but still declining</li>
+                    <li><strong>2011-2022:</strong> Modern census data showing current state</li>
                 </ul>
             </div>
         </div>

@@ -51,6 +51,17 @@ h1 {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
+.timeline-info {
+    margin-top: 15px;
+    color: #666;
+    font-style: italic;
+    font-size: 0.95em;
+    background: rgba(30, 60, 114, 0.05);
+    padding: 10px;
+    border-radius: 8px;
+    border-left: 4px solid #1e3c72;
+}
+
 .controls label {
     font-weight: 600;
     margin-right: 15px;
