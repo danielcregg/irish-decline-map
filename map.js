@@ -138,7 +138,7 @@ function setupEventListeners() {
 
 function loadGeoJSON() {
     updateStatus('Loading map boundaries...');
-    fetch('https://raw.githubusercontent.com/deldersveld/topojson/master/countries/ireland/ireland-counties.json')
+    fetch('https://raw.githubusercontent.com/codeforgermany/click_that_hood/main/public/data/ireland-counties.geojson')
         .then(response => response.json())
         .then(data => {
             irelandGeoJSON = data;
@@ -347,8 +347,9 @@ function createSimpleChart() {
     const countyNames = [];
     
     yearData.forEach(row => {
-        if (row.County && row.PercentageIrishSpeakers && countyGeoMapping[row.County]) {
-            locations.push(countyGeoMapping[row.County]);
+        if (row.County && row.PercentageIrishSpeakers) {
+            // Use county name directly as location
+            locations.push(row.County);
             const percentage = parseFloat(row.PercentageIrishSpeakers);
             percentages.push(percentage);
             countyNames.push(row.County);
@@ -357,7 +358,7 @@ function createSimpleChart() {
     
     const data = [{
         type: 'choropleth',
-        locationmode: 'geojson-id',
+        featureidkey: 'properties.name',
         locations: locations,
         z: percentages,
         text: countyNames,
@@ -427,8 +428,9 @@ function addAnimationFeatures() {
         const countyNames = [];
         
         yearData.forEach(row => {
-            if (row.County && row.PercentageIrishSpeakers && countyGeoMapping[row.County]) {
-                locations.push(countyGeoMapping[row.County]);
+            if (row.County && row.PercentageIrishSpeakers) {
+                // Use county name directly as location
+                locations.push(row.County);
                 const percentage = parseFloat(row.PercentageIrishSpeakers);
                 percentages.push(percentage);
                 countyNames.push(row.County);
@@ -439,7 +441,7 @@ function addAnimationFeatures() {
             name: year,
             data: [{
                 type: 'choropleth',
-                locationmode: 'geojson-id',
+                featureidkey: 'properties.name',
                 locations: locations,
                 z: percentages,
                 text: countyNames,
