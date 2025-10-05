@@ -41,6 +41,7 @@ const countyGeoMapping = {
 let csvData = [];
 let currentYear = '2022';
 let allYears = [];
+let irelandGeoJSON = null;
 
 // Visible status helper: shows small banner inside #ireland-map so users
 // without console access can see progress/stages on deployed Pages
@@ -90,7 +91,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     updateStatus('Initializing...');
-    loadCSVData();
+    loadGeoJSON();
     setupEventListeners();
 });
 
@@ -133,6 +134,24 @@ function setupEventListeners() {
             }
         }, 250); // Debounce resize event
     });
+}
+
+function loadGeoJSON() {
+    updateStatus('Loading map boundaries...');
+    fetch('https://raw.githubusercontent.com/codeforgermany/click_that_hood/main/public/data/ireland-counties.geojson')
+        .then(response => response.json())
+        .then(data => {
+            irelandGeoJSON = data;
+            console.log('GeoJSON loaded successfully');
+            updateStatus('Map boundaries loaded, loading data...');
+            loadCSVData();
+        })
+        .catch(error => {
+            console.error('Error loading GeoJSON:', error);
+            updateStatus('Failed to load map boundaries, using fallback...', true);
+            // Continue anyway - Plotly might handle it
+            loadCSVData();
+        });
 }
 
 function loadCSVData() {
@@ -269,7 +288,7 @@ function getResponsiveLayout(year, isAnimated = false) {
     }
 
     // On mobile, increase bottom margin to make space for animation controls
-    const mobileBottomMargin = isAnimated ? 200 : 120;
+    const mobileBottomMargin = isAnimated ? 200 : 80;
 
     return {
         title: {
@@ -277,19 +296,11 @@ function getResponsiveLayout(year, isAnimated = false) {
             font: { size: isMobile ? 18 : 24, color: '#1e3c72', family: 'Segoe UI, sans-serif' },
             x: 0.5
         },
-        xaxis: {
-            title: isMobile ? '' : 'County',
-            tickangle: isMobile ? -90 : -45,
-            tickfont: { size: isMobile ? 9 : 10 },
-            showgrid: false
+        geo: {
+            fitbounds: 'locations',
+            visible: true
         },
-        yaxis: {
-            title: isMobile ? 'Speakers (%)' : 'Percentage of Irish Speakers (%)',
-            range: [0, 105],
-            showgrid: true,
-            gridcolor: 'rgba(128,128,128,0.2)'
-        },
-        margin: isMobile ? { t: 60, r: 20, b: mobileBottomMargin, l: 60 } : { t: 80, r: 60, b: 150, l: 80 },
+        margin: isMobile ? { t: 60, r: 20, b: mobileBottomMargin, l: 20 } : { t: 80, r: 100, b: 150, l: 20 },
         plot_bgcolor: 'rgba(255,255,255,0.8)',
         paper_bgcolor: 'rgba(0,0,0,0)',
         font: { family: 'Segoe UI, sans-serif' }
@@ -297,8 +308,8 @@ function getResponsiveLayout(year, isAnimated = false) {
 }
 
 function createSimpleChart() {
-    console.log('Creating simple chart for year:', currentYear);
-    updateStatus('Rendering chart for ' + currentYear + '...');
+    console.log('Creating simple map for year:', currentYear);
+    updateStatus('Rendering map for ' + currentYear + '...');
     
     const yearData = getDataForYear(currentYear);
     console.log('Year data:', yearData.length, 'records for', currentYear);
@@ -313,41 +324,49 @@ function createSimpleChart() {
     const container = document.getElementById('ireland-map');
     if (container) container.innerHTML = '';
 
-    const counties = [];
+    const locations = [];
     const percentages = [];
-    const colors = [];
+    const countyNames = [];
     
     yearData.forEach(row => {
         if (row.County && row.PercentageIrishSpeakers) {
-            counties.push(row.County);
+            // Use county name directly as location
+            locations.push(row.County);
             const percentage = parseFloat(row.PercentageIrishSpeakers);
             percentages.push(percentage);
-            
-            // Color based on percentage
-            if (percentage >= 80) colors.push('#67000d');      // Very high - deep red
-            else if (percentage >= 70) colors.push('#a50f15'); // High - dark red
-            else if (percentage >= 60) colors.push('#cb181d'); // Medium-high - red
-            else if (percentage >= 50) colors.push('#ef3b2c'); // Medium - orange-red
-            else if (percentage >= 40) colors.push('#fb6a4a'); // Medium-low - orange
-            else if (percentage >= 30) colors.push('#fc9272'); // Low - light orange
-            else colors.push('#fcbba1');                       // Very low - light pink
+            countyNames.push(row.County);
         }
     });
     
     const data = [{
-        type: 'bar',
-        x: counties,
-        y: percentages,
-        text: percentages.map(p => p.toFixed(1) + '%'),
-        textposition: 'outside',
+        type: 'choropleth',
+        featureidkey: 'properties.name',
+        locations: locations,
+        z: percentages,
+        text: countyNames,
+        geojson: irelandGeoJSON,
+        colorscale: [
+            [0, '#fcbba1'],      // Very low - light pink
+            [0.3, '#fc9272'],    // Low - light orange
+            [0.4, '#fb6a4a'],    // Medium-low - orange
+            [0.5, '#ef3b2c'],    // Medium - orange-red
+            [0.6, '#cb181d'],    // Medium-high - red
+            [0.7, '#a50f15'],    // High - dark red
+            [1, '#67000d']       // Very high - deep red
+        ],
+        colorbar: {
+            title: '% Irish Speakers',
+            thickness: 15,
+            len: 0.7,
+            x: 1.02
+        },
+        hovertemplate: '<b>%{text}</b><br>%{z:.1f}% can speak Irish<br>Year: ' + currentYear + '<extra></extra>',
         marker: {
-            color: colors,
             line: {
-                color: 'rgba(0,0,0,0.3)',
+                color: 'white',
                 width: 1
             }
-        },
-        hovertemplate: '%{x}<br>%{y:.1f}% can speak Irish<br>Year: ' + currentYear + '<extra></extra>'
+        }
     }];
     
     const layout = getResponsiveLayout(currentYear);
@@ -355,23 +374,23 @@ function createSimpleChart() {
     const config = {
         responsive: true,
         displayModeBar: true,
-        modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d', 'zoom2d', 'zoomIn2d', 'zoomOut2d', 'autoScale2d'],
+        modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d'],
         displaylogo: false
     };
 
-    console.log('Creating plot with', counties.length, 'counties');
+    console.log('Creating plot with', locations.length, 'counties');
     Plotly.newPlot('ireland-map', data, layout, config)
         .then(function() {
-            console.log('Simple chart created successfully');
-            updateStatus('Chart rendered — adding animation features...');
-            // Once simple chart works, we can add animation
+            console.log('Simple map created successfully');
+            updateStatus('Map rendered — adding animation features...');
+            // Once simple map works, we can add animation
             setTimeout(addAnimationFeatures, 1000);
         })
         .catch(function(error) {
             console.error('Error creating plot:', error);
-            updateStatus('Error creating chart: ' + (error.message || error), true);
+            updateStatus('Error creating map: ' + (error.message || error), true);
             document.getElementById('ireland-map').innerHTML = 
-                '<div style="text-align: center; padding: 50px; color: red;">Error creating chart: ' + error.message + '</div>';
+                '<div style="text-align: center; padding: 50px; color: red;">Error creating map: ' + error.message + '</div>';
         });
 }
 
@@ -386,43 +405,45 @@ function addAnimationFeatures() {
     allYears.forEach(year => {
         const yearData = getDataForYear(year);
         
-        const counties = [];
+        const locations = [];
         const percentages = [];
-        const colors = [];
+        const countyNames = [];
         
         yearData.forEach(row => {
             if (row.County && row.PercentageIrishSpeakers) {
-                counties.push(row.County);
+                // Use county name directly as location
+                locations.push(row.County);
                 const percentage = parseFloat(row.PercentageIrishSpeakers);
                 percentages.push(percentage);
-                
-                // Color based on percentage
-                if (percentage >= 80) colors.push('#67000d');
-                else if (percentage >= 70) colors.push('#a50f15');
-                else if (percentage >= 60) colors.push('#cb181d');
-                else if (percentage >= 50) colors.push('#ef3b2c');
-                else if (percentage >= 40) colors.push('#fb6a4a');
-                else if (percentage >= 30) colors.push('#fc9272');
-                else colors.push('#fcbba1');
+                countyNames.push(row.County);
             }
         });
         
         frames.push({
             name: year,
             data: [{
-                type: 'bar',
-                x: counties,
-                y: percentages,
-                text: percentages.map(p => p.toFixed(1) + '%'),
-                textposition: 'outside',
+                type: 'choropleth',
+                featureidkey: 'properties.name',
+                locations: locations,
+                z: percentages,
+                text: countyNames,
+                geojson: irelandGeoJSON,
+                colorscale: [
+                    [0, '#fcbba1'],      // Very low - light pink
+                    [0.3, '#fc9272'],    // Low - light orange
+                    [0.4, '#fb6a4a'],    // Medium-low - orange
+                    [0.5, '#ef3b2c'],    // Medium - orange-red
+                    [0.6, '#cb181d'],    // Medium-high - red
+                    [0.7, '#a50f15'],    // High - dark red
+                    [1, '#67000d']       // Very high - deep red
+                ],
+                hovertemplate: '<b>%{text}</b><br>%{z:.1f}% can speak Irish<br>Year: ' + year + '<extra></extra>',
                 marker: {
-                    color: colors,
                     line: {
-                        color: 'rgba(0,0,0,0.3)',
+                        color: 'white',
                         width: 1
                     }
-                },
-                hovertemplate: '%{x}<br>%{y:.1f}% can speak Irish<br>Year: ' + year + '<extra></extra>'
+                }
             }]
         });
         
@@ -536,7 +557,7 @@ function updateMap() {
             createSimpleChart();
         }
     } else {
-        // Fallback to recreating the chart
+        // Fallback to recreating the map
         createSimpleChart();
     }
 }
