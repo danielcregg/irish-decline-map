@@ -297,26 +297,8 @@ function getResponsiveLayout(year, isAnimated = false) {
             x: 0.5
         },
         geo: {
-            scope: 'europe',
-            showland: true,
-            landcolor: 'rgb(243, 243, 243)',
-            showcountries: true,
-            countrycolor: 'rgb(204, 204, 204)',
-            showlakes: true,
-            lakecolor: 'rgb(255, 255, 255)',
-            projection: {
-                type: 'mercator'
-            },
-            lonaxis: {
-                range: [-11, -5]
-            },
-            lataxis: {
-                range: [51, 56]
-            },
-            center: {
-                lon: -8,
-                lat: 53.5
-            }
+            fitbounds: 'locations',
+            visible: true
         },
         margin: isMobile ? { t: 60, r: 20, b: mobileBottomMargin, l: 20 } : { t: 80, r: 100, b: 150, l: 20 },
         plot_bgcolor: 'rgba(255,255,255,0.8)',
