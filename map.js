@@ -41,6 +41,7 @@ const countyGeoMapping = {
 let csvData = [];
 let currentYear = '2022';
 let allYears = [];
+let irelandGeoJSON = null;
 
 // Visible status helper: shows small banner inside #ireland-map so users
 // without console access can see progress/stages on deployed Pages
@@ -90,7 +91,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     updateStatus('Initializing...');
-    loadCSVData();
+    loadGeoJSON();
     setupEventListeners();
 });
 
@@ -133,6 +134,24 @@ function setupEventListeners() {
             }
         }, 250); // Debounce resize event
     });
+}
+
+function loadGeoJSON() {
+    updateStatus('Loading map boundaries...');
+    fetch('https://raw.githubusercontent.com/deldersveld/topojson/master/countries/ireland/ireland-counties.json')
+        .then(response => response.json())
+        .then(data => {
+            irelandGeoJSON = data;
+            console.log('GeoJSON loaded successfully');
+            updateStatus('Map boundaries loaded, loading data...');
+            loadCSVData();
+        })
+        .catch(error => {
+            console.error('Error loading GeoJSON:', error);
+            updateStatus('Failed to load map boundaries, using fallback...', true);
+            // Continue anyway - Plotly might handle it
+            loadCSVData();
+        });
 }
 
 function loadCSVData() {
@@ -342,7 +361,7 @@ function createSimpleChart() {
         locations: locations,
         z: percentages,
         text: countyNames,
-        geojson: 'https://raw.githubusercontent.com/deldersveld/topojson/master/countries/ireland/ireland-counties.json',
+        geojson: irelandGeoJSON,
         colorscale: [
             [0, '#fcbba1'],      // Very low - light pink
             [0.3, '#fc9272'],    // Low - light orange
@@ -424,7 +443,7 @@ function addAnimationFeatures() {
                 locations: locations,
                 z: percentages,
                 text: countyNames,
-                geojson: 'https://raw.githubusercontent.com/deldersveld/topojson/master/countries/ireland/ireland-counties.json',
+                geojson: irelandGeoJSON,
                 colorscale: [
                     [0, '#fcbba1'],      // Very low - light pink
                     [0.3, '#fc9272'],    // Low - light orange
