@@ -100,6 +100,39 @@ function setupEventListeners() {
         currentYear = this.value;
         updateMap();
     });
+
+    // Add resize listener for responsiveness
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            console.log('Window resized, updating layout...');
+            const gd = document.getElementById('ireland-map');
+            // Check if plotly is available on the element
+            if (gd && gd.layout) {
+                const isAnimated = gd.layout.sliders && gd.layout.sliders.length > 0;
+                let newLayout = getResponsiveLayout(currentYear, isAnimated);
+
+                // If animated, we need to update the control positions too
+                if (isAnimated) {
+                    const isMobile = window.innerWidth < 768;
+                    const controlsUpdate = {
+                        'sliders[0].x': isMobile ? 0.05 : 0.1,
+                        'sliders[0].len': isMobile ? 0.9 : 0.8,
+                        'sliders[0].y': isMobile ? -0.15 : 0,
+                        'sliders[0].yanchor': 'top',
+                        'updatemenus[0].x': isMobile ? 0.5 : 0.1,
+                        'updatemenus[0].y': isMobile ? -0.45 : 1.15,
+                        'updatemenus[0].xanchor': isMobile ? 'center' : 'left',
+                    };
+                    // Combine the layout and control updates
+                    newLayout = {...newLayout, ...controlsUpdate};
+                }
+
+                Plotly.relayout('ireland-map', newLayout);
+            }
+        }, 250); // Debounce resize event
+    });
 }
 
 function loadCSVData() {
@@ -220,6 +253,49 @@ function getDataForYear(year) {
     return csvData.filter(row => row.Year === year.toString());
 }
 
+// Determines Plotly layout based on screen size for responsiveness
+function getResponsiveLayout(year, isAnimated = false) {
+    const isMobile = window.innerWidth < 768;
+
+    let titleText;
+    if (isAnimated) {
+        const fullTitle = `Irish Language Speakers by County (${allYears[0]}-${allYears[allYears.length-1]})`;
+        const shortTitle = `Irish Speakers (${allYears[0]}-${allYears[allYears.length-1]})`;
+        titleText = isMobile ? shortTitle : fullTitle;
+    } else {
+        const fullTitle = `Irish Language Speakers by County (${year})`;
+        const shortTitle = `Irish Speakers (${year})`;
+        titleText = isMobile ? shortTitle : fullTitle;
+    }
+
+    // On mobile, increase bottom margin to make space for animation controls
+    const mobileBottomMargin = isAnimated ? 200 : 120;
+
+    return {
+        title: {
+            text: titleText,
+            font: { size: isMobile ? 18 : 24, color: '#1e3c72', family: 'Segoe UI, sans-serif' },
+            x: 0.5
+        },
+        xaxis: {
+            title: isMobile ? '' : 'County',
+            tickangle: isMobile ? -90 : -45,
+            tickfont: { size: isMobile ? 9 : 10 },
+            showgrid: false
+        },
+        yaxis: {
+            title: isMobile ? 'Speakers (%)' : 'Percentage of Irish Speakers (%)',
+            range: [0, 105],
+            showgrid: true,
+            gridcolor: 'rgba(128,128,128,0.2)'
+        },
+        margin: isMobile ? { t: 60, r: 20, b: mobileBottomMargin, l: 60 } : { t: 80, r: 60, b: 150, l: 80 },
+        plot_bgcolor: 'rgba(255,255,255,0.8)',
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        font: { family: 'Segoe UI, sans-serif' }
+    };
+}
+
 function createSimpleChart() {
     console.log('Creating simple chart for year:', currentYear);
     updateStatus('Rendering chart for ' + currentYear + '...');
@@ -274,29 +350,7 @@ function createSimpleChart() {
         hovertemplate: '%{x}<br>%{y:.1f}% can speak Irish<br>Year: ' + currentYear + '<extra></extra>'
     }];
     
-    const layout = {
-        title: {
-            text: `Irish Language Speakers by County (${currentYear})`,
-            font: { size: 24, color: '#1e3c72', family: 'Segoe UI, sans-serif' },
-            x: 0.5
-        },
-        xaxis: {
-            title: 'County',
-            tickangle: -45,
-            tickfont: { size: 10 },
-            showgrid: false
-        },
-        yaxis: {
-            title: 'Percentage of Irish Speakers (%)',
-            range: [0, 105],
-            showgrid: true,
-            gridcolor: 'rgba(128,128,128,0.2)'
-        },
-        margin: { t: 80, r: 60, b: 150, l: 80 },
-        plot_bgcolor: 'rgba(255,255,255,0.8)',
-        paper_bgcolor: 'rgba(0,0,0,0)',
-        font: { family: 'Segoe UI, sans-serif' }
-    };
+    const layout = getResponsiveLayout(currentYear);
 
     const config = {
         responsive: true,
@@ -323,6 +377,7 @@ function createSimpleChart() {
 
 function addAnimationFeatures() {
     console.log('Adding animation features...');
+    const isMobile = window.innerWidth < 768;
     
     // Prepare frames for all years
     const frames = [];
@@ -384,12 +439,15 @@ function addAnimationFeatures() {
         });
     });
     
-    // Add animation controls
+    // Add animation controls with responsive positioning
     const updateMenus = [{
         type: 'buttons',
         showactive: false,
-        x: 0.1,
-        y: 1.15,
+        direction: 'left',
+        x: isMobile ? 0.5 : 0.1,
+        y: isMobile ? -0.45 : 1.15,
+        xanchor: isMobile ? 'center' : 'left',
+        yanchor: 'top',
         buttons: [
             {
                 label: 'Play Timeline',
@@ -421,8 +479,11 @@ function addAnimationFeatures() {
             xanchor: 'right'
         },
         steps: sliderSteps,
-        x: 0.1,
-        len: 0.8,
+        x: isMobile ? 0.05 : 0.1,
+        len: isMobile ? 0.9 : 0.8,
+        xanchor: 'left',
+        y: isMobile ? -0.15 : 0,
+        yanchor: 'top',
         bgcolor: 'rgba(255,255,255,0.8)',
         bordercolor: '#1e3c72',
         borderwidth: 2,
@@ -432,11 +493,11 @@ function addAnimationFeatures() {
     // Add frames and controls
     Plotly.addFrames('ireland-map', frames)
         .then(function() {
-            return Plotly.relayout('ireland-map', {
-                updatemenus: updateMenus,
-                sliders: sliders,
-                'title.text': `Irish Language Speakers by County (${allYears[0]}-${allYears[allYears.length-1]})`
-            });
+            let animatedLayout = getResponsiveLayout(currentYear, true);
+            animatedLayout.updatemenus = updateMenus;
+            animatedLayout.sliders = sliders;
+
+            return Plotly.relayout('ireland-map', animatedLayout);
         })
         .then(function() {
             console.log('Animation features added successfully');
