@@ -209,46 +209,77 @@ footer a:hover {
 /* Responsive design */
 @media (max-width: 768px) {
     .container {
-        padding: 10px;
+        padding: 15px;
     }
-    
+
+    header, .controls, .info-panel, footer {
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
     h1 {
         font-size: 2em;
     }
     
     .subtitle {
-        font-size: 1em;
+        font-size: 1.1em;
     }
-    
-    header {
-        padding: 20px;
-    }
-    
+
     #ireland-map {
-        height: 400px;
+        /* Use a combination of min-height and a viewport-based height */
+        min-height: 450px;
+        height: 60vh; /* Adjusts height based on the viewport */
     }
     
     .controls {
-        padding: 15px;
+        padding: 20px;
     }
-    
+
     .info-panel {
         padding: 20px;
+    }
+
+    .legend li {
+        padding-left: 12px;
+        margin-bottom: 10px;
     }
 }
 
 @media (max-width: 480px) {
+    .container {
+        padding: 10px;
+    }
+
+    header, .controls, .info-panel, footer {
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+
     h1 {
-        font-size: 1.8em;
+        font-size: 1.6em;
     }
     
+    .subtitle {
+        font-size: 1em;
+    }
+
     #ireland-map {
-        height: 350px;
+        min-height: 400px;
+        height: 55vh;
     }
-    
+
     .controls label {
         display: block;
-        margin-bottom: 10px;
+        margin-bottom: 15px;
         margin-right: 0;
+    }
+
+    #yearSelect {
+        width: 100%;
+        padding: 12px;
+    }
+
+    .timeline-info {
+        font-size: 0.9em;
     }
 }
