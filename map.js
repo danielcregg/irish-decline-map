@@ -572,8 +572,14 @@ function calculateDeclineOverTime() {
     
     const declines = [];
     
+    // Create a Map for O(1) lookup of the last year's data
+    const dataLastMap = new Map();
+    dataLast.forEach(row => {
+        dataLastMap.set(row.County, row);
+    });
+
     dataFirst.forEach(rowFirst => {
-        const rowLast = dataLast.find(r => r.County === rowFirst.County);
+        const rowLast = dataLastMap.get(rowFirst.County);
         if (rowLast) {
             const decline = parseFloat(rowFirst.PercentageIrishSpeakers) - parseFloat(rowLast.PercentageIrishSpeakers);
             declines.push({
