@@ -33,7 +33,7 @@ const countyGeoMapping = {
     'Roscommon': 'IRL.RN_1',
     'Sligo': 'IRL.SO_1',
     'Cavan': 'IRL.CN_1',
-    'Donegal': 'IRL.DL_1',
+    'Donegal': 'IRL.DO_1',
     'Monaghan': 'IRL.MN_1'
 };
 
@@ -249,7 +249,11 @@ async function fetchCSVFallback(reason) {
 function safeShowError(msg) {
     const el = document.getElementById('ireland-map');
     if (el) {
-        el.innerHTML = `<div style="text-align:center;padding:50px;color:red;">${msg}</div>`;
+        const div = document.createElement('div');
+        div.style.cssText = 'text-align:center;padding:50px;color:red;';
+        div.textContent = msg;
+        el.innerHTML = '';
+        el.appendChild(div);
     }
 }
 
@@ -315,8 +319,7 @@ function createSimpleChart() {
     console.log('Year data:', yearData.length, 'records for', currentYear);
     
     if (yearData.length === 0) {
-        document.getElementById('ireland-map').innerHTML = 
-            '<div style="text-align: center; padding: 50px; color: orange;">No data found for year ' + currentYear + '</div>';
+        safeShowError('No data found for year ' + currentYear);
         return;
     }
     
@@ -389,8 +392,7 @@ function createSimpleChart() {
         .catch(function(error) {
             console.error('Error creating plot:', error);
             updateStatus('Error creating map: ' + (error.message || error), true);
-            document.getElementById('ireland-map').innerHTML = 
-                '<div style="text-align: center; padding: 50px; color: red;">Error creating map: ' + error.message + '</div>';
+            safeShowError('Error creating map: ' + (error.message || error));
         });
 }
 
